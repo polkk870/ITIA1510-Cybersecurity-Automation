@@ -29,4 +29,7 @@ print(f"Rotations (3 yr):     {rotation_count}")
 print("------------------------------------")
 print("NOTE: Classification requires conditionals -- coming in Week 02.")
 print("====================================")
+<<<<<<< HEAD
 
+=======
+>>>>>>> 4bd58752e5e2bd5faede1b13d543381dfb97eddf
