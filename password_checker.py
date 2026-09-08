@@ -27,7 +27,6 @@ while count < batch_size:
     password = input("Enter the password to analyze: ")
     rotation_interval = int(input("Enter the rotation interval in months: "))
 
-<<<<<<< HEAD
     # --- Week 02 logic moved inside the loop ---
 
     # Count characters in the password
