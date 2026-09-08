@@ -1,35 +1,117 @@
-# Ask the user for account information and the password to analyze
-account = input("Enter the account name: ")
-username = input("Enter the username: ")
-password = input("Enter the password to analyze: ")
-rotation_interval = input("Enter the rotation interval in months: ")
+# Week 03 password checker
+# This program now processes multiple passwords instead of just one.
+# Everything from Week 02 is still here, but moved inside a loop so it repeats.
 
-# Convert rotation interval from text to an integer so we can do math with it
-rotation_interval = int(rotation_interval)
+# These counters must be outside the loop.
+# Reason: they track totals across ALL passwords. If they were inside the loop,
+# they would reset every time and never accumulate.
+total_pass = 0
+total_fail = 0
+critical_count = 0
 
-# REQUIRED CALCULATIONS
-# Count how many characters are in the password
-password_length = len(password)
+# Hardcoded batch size for Week 03.
+# "Hardcoded" means the value is typed directly into the program instead of
+# coming from a file or user input.
+batch_size = 3
+count = 0
 
-length_score = password_length * 10
+# This loop runs once per password. It stops when count reaches batch_size.
+while count < batch_size:
+    print("========================================")
+    print(f"   PASSWORD AUDIT REPORT  ({count + 1} of {batch_size})")
+    print("========================================")
 
-# Calculate how many rotations happen in 36 months (3 years)
-rotation_count = 36 // rotation_interval
+    # All input is now inside the loop so the user is asked for each password.
+    account = input("Enter the account name: ")
+    username = input("Enter the username: ")
+    password = input("Enter the password to analyze: ")
+    rotation_interval = int(input("Enter the rotation interval in months: "))
 
-# Print the formatted password audit report
-print("====================================")
-print("        PASSWORD AUDIT REPORT")
-print("====================================")
-print(f"Account:              {account}")
-print(f"Username:             {username}")
-print(f"Password length:      {password_length} characters")
-print(f"Length score:         {length_score} points")
-print(f"Rotation interval:    {rotation_interval} months")
-print(f"Rotations (3 yr):     {rotation_count}")
-print("------------------------------------")
-print("NOTE: Classification requires conditionals -- coming in Week 02.")
-print("====================================")
-<<<<<<< HEAD
+    # --- Week 02 logic moved inside the loop ---
 
-=======
->>>>>>> 4bd58752e5e2bd5faede1b13d543381dfb97eddf
+    # Count characters in the password
+    password_length = len(password)
+
+    # Length score is simple math: 10 points per character
+    length_score = password_length * 10
+
+    # How many rotations happen in 36 months (3 years)
+    rotation_count = 36 // rotation_interval
+
+    # Length verdict based on NIST guidelines
+    if password_length >= 12:
+        length_verdict = "STRONG -- meets NIST SP 800-63B recommendations"
+    else:
+        length_verdict = "WEAK -- does not meet NIST SP 800-63B recommendations"
+
+    # Loop-based digit check
+    # This replaces the Week 02 version that used nine OR operators.
+    # This version is better because:
+    # - It scales (works for any length password)
+    # - It's cleaner and easier to read
+    # - It checks each character automatically
+    has_digit = False
+    for char in password:
+        if char in "0123456789":
+            has_digit = True
+
+    digit_text = "YES" if has_digit else "NO"
+
+    # Username match check (CRITICAL flag)
+    # If the password is exactly the same as the username, it's a huge security risk.
+    username_match = (username == password)
+    username_text = "YES" if username_match else "NO"
+
+    # Rotation verdict based on how often the password is changed
+    if rotation_interval <= 6:
+        rotation_verdict = "EXCELLENT -- frequent rotation policy detected"
+    else:
+        rotation_verdict = "POOR -- rotation interval too long"
+
+    # OVERALL verdict
+    # A password passes only if:
+    # - length is strong
+    # - it contains a digit
+    # - it does NOT match the username
+    if length_verdict.startswith("STRONG") and has_digit and not username_match:
+        overall = "PASS -- password meets all checked criteria"
+        total_pass += 1   # Count how many passed
+    else:
+        overall = "FAIL -- password does not meet all checked criteria"
+        total_fail += 1   # Count how many failed
+
+    # Count CRITICAL username-match flags
+    if username_match:
+        critical_count += 1
+
+    # Print the full report for this password
+    print(f"Account:              {account}")
+    print(f"Username:             {username}")
+    print(f"Password length:      {password_length} characters")
+    print(f"Length score:         {length_score} points")
+    print(f"Rotation interval:    {rotation_interval} months")
+    print(f"Rotations (3 yr):     {rotation_count}")
+    print("----------------------------------------")
+    print(f"Length verdict:       {length_verdict}")
+    print(f"Digit found:          {digit_text}")
+    print(f"Username match:       {username_text}")
+    print(f"Rotation verdict:     {rotation_verdict}")
+    print("----------------------------------------")
+    print(f"OVERALL: {overall}")
+    print("========================================")
+
+    # Increase the loop counter so the loop eventually ends
+    count += 1
+
+# After the loop finishes, print the batch summary.
+# This shows totals for ALL passwords processed.
+print("========================================")
+print("   BATCH AUDIT SUMMARY")
+print("========================================")
+print(f"Passwords audited: {batch_size}")
+print(f"Passed:            {total_pass}")
+print(f"Failed:            {total_fail}")
+print(f"Critical flags:    {critical_count}")
+print("----------------------------------------")
+print("NOTE: Input is still hardcoded -- file reading coming in Week 08.")
+print("========================================")
