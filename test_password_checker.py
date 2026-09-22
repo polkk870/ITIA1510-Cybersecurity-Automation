@@ -1,6 +1,10 @@
 # test_password_checker.py
 
-from password_checker import check_length, check_digit, check_username, check_rotation
+from password_checker import (
+    check_length, check_digit, check_username,
+    check_rotation, check_breach, known_breached
+)
+
 
 # -------------------------
 # check_length tests
@@ -46,5 +50,16 @@ rotation_ok, verdict = check_rotation(6)
 assert rotation_ok == True
 print("PASS: check_rotation correctly returned True for 6-month interval")
 
+# check_breach tests
+
+# Password IS in the breach list → not_breached should be False
+assert check_breach("password123", known_breached) == False
+print("PASS: check_breach correctly flagged breached password")
+
+# Password is NOT in the breach list → not_breached should be True
+assert check_breach("MySecurePass!2024", known_breached) == True
+print("PASS: check_breach correctly accepted safe password")
+
+
 print("----------------------------------------")
-print("All 8 tests passed.")
+print("All 10 tests passed.")
