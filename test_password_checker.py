@@ -1,65 +1,94 @@
-# test_password_checker.py
-
+import pytest
 from password_checker import (
-    check_length, check_digit, check_username,
-    check_rotation, check_breach, known_breached
+    check_length,
+    check_digit,
+    check_username,
+    check_rotation,
+    check_breach,
+    known_breached,
+    policy
 )
 
-
-# -------------------------
+# -----------------------------
 # check_length tests
-# -------------------------
+# -----------------------------
 
-length_ok, verdict = check_length("abcd")
-assert length_ok == False
-print("PASS: check_length correctly identified weak password")
+def test_length_short():
+    ok, verdict = check_length("abcd", policy)
+    assert ok is False
 
-length_ok, verdict = check_length("abcdefghijklmnop")
-assert length_ok == True
-print("PASS: check_length correctly identified strong password")
+def test_length_minimum():
+    ok, verdict = check_length("abcdefgh", policy)
+    assert ok is True
 
-# -------------------------
+def test_length_strong():
+    ok, verdict = check_length("abcdefghijklmnop", policy)
+    assert ok is True
+    assert verdict.lower().startswith("password length strong")
+
+# -----------------------------
 # check_digit tests
-# -------------------------
+# -----------------------------
 
-assert check_digit("password") == False
-print("PASS: check_digit correctly returned False for password with no digits")
+def test_digit_not_found():
+    assert check_digit("password") is False
 
-assert check_digit("passw0rd") == True
-print("PASS: check_digit correctly returned True for password containing a digit")
+def test_digit_found():
+    assert check_digit("passw0rd") is True
 
-# -------------------------
+# -----------------------------
 # check_username tests
-# -------------------------
+# -----------------------------
 
-assert check_username("katelyn", "katelyn") == False
-print("PASS: check_username correctly returned False when password matches username")
+def test_username_match():
+    assert check_username("katelyn", "katelyn") is False
 
-assert check_username("securepass", "katelyn") == True
-print("PASS: check_username correctly returned True when password differs from username")
+def test_username_not_match():
+    assert check_username("securepass", "katelyn") is True
 
-# -------------------------
+# -----------------------------
 # check_rotation tests
-# -------------------------
+# -----------------------------
 
-rotation_ok, verdict = check_rotation(18)
-assert rotation_ok == False
-print("PASS: check_rotation correctly returned False for 18-month interval")
+def test_rotation_too_long():
+    ok, verdict = check_rotation(18, policy)
+    assert ok is False
 
-rotation_ok, verdict = check_rotation(6)
-assert rotation_ok == True
-print("PASS: check_rotation correctly returned True for 6-month interval")
+def test_rotation_good():
+    ok, verdict = check_rotation(6, policy)
+    assert ok is True
 
+# -----------------------------
 # check_breach tests
+# -----------------------------
 
-# Password IS in the breach list → not_breached should be False
-assert check_breach("password123", known_breached) == False
-print("PASS: check_breach correctly flagged breached password")
+def test_breach_found():
+    assert check_breach("password123", known_breached) is False
 
-# Password is NOT in the breach list → not_breached should be True
-assert check_breach("MySecurePass!2024", known_breached) == True
-print("PASS: check_breach correctly accepted safe password")
+def test_breach_not_found():
+    assert check_breach("MySecurePass!2024", known_breached) is True
 
+# -----------------------------
+# Week 06 policy dictionary tests
+# -----------------------------
 
-print("----------------------------------------")
-print("All 10 tests passed.")
+def test_policy_strong_length():
+    assert policy["strong_length"] == 15
+
+def test_policy_has_require_digit():
+    assert "require_digit" in policy
+
+def test_policy_min_length():
+    assert policy["min_length"] == 8
+
+# -----------------------------
+# Additional safety tests
+# -----------------------------
+
+def test_breach_list_exists():
+    assert isinstance(known_breached, list)
+    assert len(known_breached) > 0
+
+def test_policy_is_dict():
+    assert isinstance(policy, dict)
+
