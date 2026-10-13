@@ -1,94 +1,84 @@
-import pytest
+import os
 from password_checker import (
-    check_length,
-    check_digit,
-    check_username,
-    check_rotation,
-    check_breach,
-    known_breached,
-    policy
+    check_length, check_digit, check_username, check_rotation,
+    check_breach, load_credentials, load_breached, write_report, policy
 )
 
-# -----------------------------
-# check_length tests
-# -----------------------------
+known_breached = load_breached("breached.txt")
 
-def test_length_short():
-    ok, verdict = check_length("abcd", policy)
+def test_check_length_short():
+    ok, verdict = check_length("abc", policy)
     assert ok is False
+    assert verdict == "Password too short"
 
-def test_length_minimum():
+def test_check_length_ok():
     ok, verdict = check_length("abcdefgh", policy)
     assert ok is True
+    assert verdict == "Password length OK"
 
-def test_length_strong():
+def test_check_length_strong():
     ok, verdict = check_length("abcdefghijklmnop", policy)
     assert ok is True
-    assert verdict.lower().startswith("password length strong")
+    assert verdict == "Password length STRONG"
 
-# -----------------------------
-# check_digit tests
-# -----------------------------
+def test_check_digit_yes():
+    assert check_digit("abc3") is True
 
-def test_digit_not_found():
-    assert check_digit("password") is False
+def test_check_digit_no():
+    assert check_digit("abcdef") is False
 
-def test_digit_found():
-    assert check_digit("passw0rd") is True
+def test_check_username_match():
+    assert check_username("jsmith", "jsmith") is False
 
-# -----------------------------
-# check_username tests
-# -----------------------------
+def test_check_username_nomatch():
+    assert check_username("summer2024!", "jsmith") is True
 
-def test_username_match():
-    assert check_username("katelyn", "katelyn") is False
-
-def test_username_not_match():
-    assert check_username("securepass", "katelyn") is True
-
-# -----------------------------
-# check_rotation tests
-# -----------------------------
-
-def test_rotation_too_long():
-    ok, verdict = check_rotation(18, policy)
-    assert ok is False
-
-def test_rotation_good():
-    ok, verdict = check_rotation(6, policy)
+def test_check_rotation_good():
+    ok, verdict = check_rotation(3, policy)
     assert ok is True
+    assert verdict == "Rotation interval ideal"
 
-# -----------------------------
-# check_breach tests
-# -----------------------------
+def test_check_rotation_ok():
+    ok, verdict = check_rotation(12, policy)
+    assert ok is True
+    assert verdict == "Rotation interval acceptable"
 
-def test_breach_found():
+def test_check_rotation_bad():
+    ok, verdict = check_rotation(24, policy)
+    assert ok is False
+    assert verdict == "Rotation interval too long"
+
+def test_check_breach_safe():
+    assert check_breach("notbreached", known_breached) is True
+
+def test_check_breach_hit():
     assert check_breach("password123", known_breached) is False
 
-def test_breach_not_found():
-    assert check_breach("MySecurePass!2024", known_breached) is True
+def test_load_credentials_returns_list():
+    creds = load_credentials("credentials.txt")
+    assert type(creds) is list
 
-# -----------------------------
-# Week 06 policy dictionary tests
-# -----------------------------
+def test_load_credentials_first_record_has_account():
+    creds = load_credentials("credentials.txt")
+    assert "account" in creds[0]
 
-def test_policy_strong_length():
-    assert policy["strong_length"] == 15
+def test_load_breached_returns_list():
+    breached = load_breached("breached.txt")
+    assert type(breached) is list
 
-def test_policy_has_require_digit():
-    assert "require_digit" in policy
+def test_load_breached_contains_password123():
+    breached = load_breached("breached.txt")
+    assert "password123" in breached
 
-def test_policy_min_length():
-    assert policy["min_length"] == 8
+def test_write_report_creates_file():
+    lines = ["hello", "world"]
+    write_report(lines, "test_report.txt")
 
-# -----------------------------
-# Additional safety tests
-# -----------------------------
+    with open("test_report.txt") as f:
+        text = f.read()
 
-def test_breach_list_exists():
-    assert isinstance(known_breached, list)
-    assert len(known_breached) > 0
+    assert text == "hello\nworld\n"
 
-def test_policy_is_dict():
-    assert isinstance(policy, dict)
+    os.remove("test_report.txt")
+
 

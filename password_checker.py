@@ -1,4 +1,6 @@
-# policy is defined at module level so every function can read the same rules.
+import json
+
+# policy is defined at module level so every function reads the same rules.
 # placing it here means changing a rule only requires editing one line.
 policy = {
     "min_length": 8,
@@ -9,15 +11,56 @@ policy = {
     "check_breach_list": True
 }
 
+# ---------------------------------------------------------------------------
+# FILE LOADING FUNCTIONS (Week 07)
+# ---------------------------------------------------------------------------
+
+def load_breached(filepath):
+    """Read the breached password file. Returns a list of password strings."""
+    known_breached = []
+    # with closes the file automatically even if an error stops the program
+    with open(filepath, "r") as f:
+        for line in f:
+            line = line.strip()
+            if line != "":          # skip blank lines so split() never breaks
+                known_breached.append(line)
+    return known_breached
+
+
+def load_credentials(filepath):
+    """Read credentials.txt and return a list of account dictionaries."""
+    credentials = []
+    # with ensures safe closing even if exceptions occur
+    with open(filepath, "r") as f:
+        for line in f:
+            line = line.strip()
+            if line == "":          # skip blank lines so fields always exist
+                continue
+            fields = line.split(",")
+            credentials.append({
+                "account": fields[0],
+                "username": fields[1],
+                "password": fields[2],
+                "rotation_interval": int(fields[3]),
+            })
+    return credentials
+
+
+def write_report(report_lines, filepath):
+    """Write each string in report_lines to the file as one line."""
+    # write mode overwrites the file every run, which is fine for this lab
+    with open(filepath, "w") as f:
+        for line in report_lines:
+            f.write(line + "\n")    # write() does NOT add newline automatically
+
+
+# ---------------------------------------------------------------------------
+# CHECK FUNCTIONS (unchanged from Week 06)
+# ---------------------------------------------------------------------------
+
 def check_length(password, policy):
-    """
-    Checks password length against policy.
-    Takes a password string.
-    Returns (length_ok: bool, length_verdict: str).
-    """
     password_length = len(password)
 
-    # reading limits from policy avoids hard-coding numbers inside functions
     if password_length < policy["min_length"]:
         return False, "Password too short"
     elif password_length < policy["strong_length"]:
@@ -27,11 +70,6 @@ def check_length(password, policy):
 
 
 def check_digit(password):
-    """
-    Checks whether password contains at least one digit.
-    Takes a password string.
-    Returns has_digit: bool.
-    """
     for char in password:
         if char.isdigit():
             return True
@@ -39,21 +77,10 @@ def check_digit(password):
 
 
 def check_username(password, username):
-    """
-    Ensures password does not match username.
-    Takes password and username strings.
-    Returns not_username: bool.
-    """
     return password != username
 
 
 def check_rotation(rotation_interval, policy):
-    """
-    Checks whether rotation interval meets policy.
-    Takes rotation interval as an integer (months).
-    Returns (rotation_ok: bool, rotation_verdict: str).
-    """
-    # reading limits from policy keeps rotation rules consistent everywhere
     if rotation_interval <= policy["good_rotation_months"]:
         return True, "Rotation interval ideal"
     elif rotation_interval <= policy["max_rotation_months"]:
@@ -62,23 +89,16 @@ def check_rotation(rotation_interval, policy):
         return False, "Rotation interval too long"
 
 
-known_breached = [
-    "password", "password123", "123456", "qwerty", "letmein",
-    "welcome", "monkey", "dragon", "master", "sunshine"
-]
-
 def check_breach(password, known_breached):
-    """
-    Returns True when password is NOT in the known breach list.
-    """
     return password not in known_breached
 
 
-def audit_password(account, username, password, rotation_interval, known_breached, policy):
-    """
-    Orchestrates all password checks and prints full report.
-    Returns (passed, failed, critical) as integers (1 or 0).
-    """
+# ---------------------------------------------------------------------------
+# REPORT GENERATION (Week 07 changes)
+# ---------------------------------------------------------------------------
+
+def audit_password(account, username, password, rotation_interval, known_breached, policy, report_lines):
+    """Runs all password checks and appends the full report to report_lines."""
 
     length_ok, length_verdict = check_length(password, policy)
     has_digit = check_digit(password)
@@ -86,31 +106,31 @@ def audit_password(account, username, password, rotation_interval, known_breache
     rotation_ok, rotation_verdict = check_rotation(rotation_interval, policy)
     not_breached = check_breach(password, known_breached)
 
-    print("\n========================================")
-    print("   PASSWORD AUDIT REPORT")
-    print("========================================")
-    print(f"Account:           {account}")
-    print(f"Username:          {username}")
-    print(f"Password length:   {len(password)} characters")
-    print(f"Length score:      {len(password) * 10} points")
-    print(f"Rotation interval: {rotation_interval} months")
-    print(f"Rotations (3 yr):  {36 // rotation_interval}")
-    print("----------------------------------------")
-    print(f"Length verdict:    {length_verdict}")
-    print(f"Digit found:       {'YES' if has_digit else 'NO'}")
-    print(f"Username match:    {'NO' if not_username else 'YES'}")
-    print(f"Breach check:      {'OK' if not_breached else 'CRITICAL -- password found in known breach list'}")
-    print(f"Rotation verdict:  {rotation_verdict}")
-    print("----------------------------------------")
+    report_lines.append("========================================")
+    report_lines.append("   PASSWORD AUDIT REPORT")
+    report_lines.append("========================================")
+    report_lines.append(f"Account:           {account}")
+    report_lines.append(f"Username:          {username}")
+    report_lines.append(f"Password length:   {len(password)} characters")
+    report_lines.append(f"Length score:      {len(password) * 10} points")
+    report_lines.append(f"Rotation interval: {rotation_interval} months")
+    report_lines.append(f"Rotations (3 yr):  {36 // rotation_interval}")
+    report_lines.append("----------------------------------------")
+    report_lines.append(f"Length verdict:    {length_verdict}")
+    report_lines.append(f"Digit found:       {'YES' if has_digit else 'NO'}")
+    report_lines.append(f"Username match:    {'NO' if not_username else 'YES'}")
+    report_lines.append(f"Breach check:      {'OK' if not_breached else 'CRITICAL -- password found in known breach list'}")
+    report_lines.append(f"Rotation verdict:  {rotation_verdict}")
+    report_lines.append("----------------------------------------")
 
     passed = failed = 0
 
     if length_ok and has_digit and not_username and not_breached and rotation_ok:
         passed = 1
-        print("OVERALL: PASS -- meets all requirements")
+        report_lines.append("OVERALL: PASS -- meets all requirements")
     else:
         failed = 1
-        print("OVERALL: FAIL -- see findings above")
+        report_lines.append("OVERALL: FAIL -- see findings above")
 
     # critical means username match OR breach list hit
     is_critical = (not not_username) or (not not_breached)
@@ -118,18 +138,16 @@ def audit_password(account, username, password, rotation_interval, known_breache
     return passed, failed, is_critical
 
 
+# ---------------------------------------------------------------------------
+# MAIN PROGRAM (Week 07)
+# ---------------------------------------------------------------------------
+
 if __name__ == '__main__':
 
-    # credentials now stored as dictionaries so fields are reached by key
-    credentials = [
-        {"account": "Gmail", "username": "jsmith", "password": "password123", "rotation_interval": 12},
-        {"account": "SSH Server", "username": "jsmith", "password": "jsmith", "rotation_interval": 24},
-        {"account": "VPN", "username": "jsmith", "password": "Tr0ub4dor&3correct", "rotation_interval": 3},
-        {"account": "Company Email", "username": "jsmith", "password": "summer2024!", "rotation_interval": 6},
-        {"account": "GitHub", "username": "jsmith", "password": "Blue-Harbor-72-Lantern", "rotation_interval": 6}
-    ]
+    credentials = load_credentials("credentials.txt")
+    known_breached = load_breached("breached.txt")
+    report_lines = []
 
-    # summary dictionary replaces multiple counters
     summary = {
         "total": 0,
         "passed": 0,
@@ -148,7 +166,8 @@ if __name__ == '__main__':
             cred["password"],
             cred["rotation_interval"],
             known_breached,
-            policy
+            policy,
+            report_lines
         )
 
         if passed:
@@ -160,17 +179,23 @@ if __name__ == '__main__':
             summary["critical"] += 1
             summary["critical_accounts"].append(cred["account"])
 
-    print("\n========================================")
-    print("   BATCH AUDIT SUMMARY")
-    print("========================================")
-    print(f"Credentials audited: {summary.get('total', 0)}")
-    print(f"Passed:              {summary.get('passed', 0)}")
-    print(f"Failed:              {summary.get('failed', 0)}")
-    print("----------------------------------------")
-    print("Failed accounts:     " + ", ".join(summary.get("failed_accounts", [])))
-    print(f"Critical flags:      {summary.get('critical', 0)}")
-    print("Critical accounts:   " + ", ".join(summary.get("critical_accounts", [])))
-    print("----------------------------------------")
-    print("NOTE: Credentials and breach list are hardcoded -- file reading coming in Week 07.")
-    print("========================================")
+    report_lines.append("========================================")
+    report_lines.append("   BATCH AUDIT SUMMARY")
+    report_lines.append("========================================")
+    report_lines.append(f"Credentials audited: {summary['total']}")
+    report_lines.append(f"Passed:              {summary['passed']}")
+    report_lines.append(f"Failed:              {summary['failed']}")
+    report_lines.append("----------------------------------------")
+    report_lines.append("Failed accounts:     " + ", ".join(summary["failed_accounts"]))
+    report_lines.append(f"Critical flags:      {summary['critical']}")
+    report_lines.append("Critical accounts:   " + ", ".join(summary["critical_accounts"]))
+    report_lines.append("========================================")
+
+    # print to console
+    for line in report_lines:
+        print(line)
+
+    # save to file
+    write_report(report_lines, "report.txt")
+
 
