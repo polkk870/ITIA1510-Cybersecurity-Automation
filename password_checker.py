@@ -141,6 +141,16 @@ def audit_password(account, username, password, rotation_interval, known_breache
 # ---------------------------------------------------------------------------
 # MAIN PROGRAM (Week 07)
 # ---------------------------------------------------------------------------
+# Save summary data as JSON so another program can read it
+def save_summary(summary, filepath):
+    with open(filepath, "w") as f:
+        json.dump(summary, f, indent=2)
+
+
+# Load summary data back into a dictionary
+def load_summary(filepath):
+    with open(filepath, "r") as f:
+        return json.load(f)
 
 if __name__ == '__main__':
 
@@ -197,5 +207,8 @@ if __name__ == '__main__':
 
     # save to file
     write_report(report_lines, "report.txt")
+
+    # Save machine-readable audit results
+    save_summary(summary, "audit_summary.json")
 
 

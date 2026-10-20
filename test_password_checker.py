@@ -1,9 +1,9 @@
 import os
 from password_checker import (
     check_length, check_digit, check_username, check_rotation,
-    check_breach, load_credentials, load_breached, write_report, policy
+    check_breach, load_credentials, load_breached, write_report,
+    save_summary, load_summary, policy
 )
-
 known_breached = load_breached("breached.txt")
 
 def test_check_length_short():
@@ -80,5 +80,66 @@ def test_write_report_creates_file():
     assert text == "hello\nworld\n"
 
     os.remove("test_report.txt")
+
+def test_save_and_load_summary():
+    sample = {
+        "total": 2,
+        "passed": 1,
+        "failed": 1,
+        "critical": 1,
+        "failed_accounts": ["Gmail"],
+        "critical_accounts": ["Gmail"]
+    }
+
+    save_summary(sample, "test_summary.json")
+
+    assert load_summary("test_summary.json") == sample
+
+    print("PASS: save_summary and load_summary gave back the same dictionary")
+
+
+def test_failed_accounts_is_list():
+    sample = {
+        "total": 2,
+        "passed": 1,
+        "failed": 1,
+        "critical": 1,
+        "failed_accounts": ["Gmail"],
+        "critical_accounts": ["Gmail"]
+    }
+
+    save_summary(sample, "test_summary.json")
+
+    loaded = load_summary("test_summary.json")
+
+    assert isinstance(loaded["failed_accounts"], list)
+
+    print("PASS: failed_accounts remained a list")
+
+
+def test_no_passwords_saved_in_json():
+    sample = {
+        "total": 2,
+        "passed": 1,
+        "failed": 1,
+        "critical": 1,
+        "failed_accounts": ["Gmail"],
+        "critical_accounts": ["Gmail"]
+    }
+
+    save_summary(sample, "test_summary.json")
+
+    with open("test_summary.json", "r") as f:
+        contents = f.read()
+
+    with open("credentials.txt", "r") as f:
+        for line in f:
+            parts = line.strip().split(",")
+
+            if len(parts) == 4:
+                password = parts[2]
+                assert password not in contents
+
+    print("PASS: no passwords appeared in saved JSON")
 
 
