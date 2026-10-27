@@ -2,7 +2,8 @@ import os
 from password_checker import (
     check_length, check_digit, check_username, check_rotation,
     check_breach, load_credentials, load_breached, write_report,
-    save_summary, load_summary, policy
+    save_summary, load_summary, policy,
+    load_history, add_to_history, save_history
 )
 known_breached = load_breached("breached.txt")
 
@@ -143,3 +144,58 @@ def test_no_passwords_saved_in_json():
     print("PASS: no passwords appeared in saved JSON")
 
 
+def test_load_history_missing_file():
+    assert load_history("does_not_exist.json") == []
+
+    print("PASS: load_history returns empty list for missing file")
+
+def test_add_to_history_first_run():
+    sample = {
+        "passed": 2,
+        "failed": 3,
+        "critical_accounts": ["Gmail"]
+    }
+
+    history = add_to_history([], sample, 3)
+
+    assert history[0]["run"] == 1
+
+    print("PASS: first history entry is run 1")
+
+
+def test_add_to_history_trim():
+    sample = {
+        "passed": 2,
+        "failed": 3,
+        "critical_accounts": ["Gmail"]
+    }
+
+    history = []
+
+    for i in range(3):
+        history = add_to_history(history, sample, 2)
+
+    assert [entry["run"] for entry in history] == [2, 3]
+
+    print("PASS: add_to_history kept only newest 2 runs")
+
+
+def test_save_and_load_history():
+    sample_history = [
+        {
+            "run": 1,
+            "passed": 2,
+            "failed": 3,
+            "critical_accounts": ["Gmail"]
+        }
+    ]
+
+    save_history(sample_history, "test_history.json")
+
+    loaded = load_history("test_history.json")
+
+    assert loaded == sample_history
+
+    os.remove("test_history.json")
+
+    print("PASS: save_history and load_history match")

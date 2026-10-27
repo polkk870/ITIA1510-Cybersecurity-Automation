@@ -1,3 +1,4 @@
+import os
 import json
 
 # policy is defined at module level so every function reads the same rules.
@@ -8,7 +9,8 @@ policy = {
     "max_rotation_months": 12,
     "good_rotation_months": 6,
     "require_digit": True,
-    "check_breach_list": True
+    "check_breach_list": True,
+    "history_runs": 3
 }
 
 # ---------------------------------------------------------------------------
@@ -152,6 +154,38 @@ def load_summary(filepath):
     with open(filepath, "r") as f:
         return json.load(f)
 
+def load_history(filepath):
+    # First run has no history file yet, so return an empty list.
+    if not os.path.exists(filepath):
+        return []
+
+    with open(filepath, "r") as f:
+        return json.load(f)
+
+
+def add_to_history(history, summary, keep):
+    # Use newest run number because history length stops growing
+    # once the history is trimmed.
+    if history:
+        run_number = history[-1]["run"] + 1
+    else:
+        run_number = 1
+
+    history.append({
+        "run": run_number,
+        "passed": summary["passed"],
+        "failed": summary["failed"],
+        "critical_accounts": summary["critical_accounts"]
+    })
+
+    # Keep only the newest runs.
+    return history[-keep:]
+
+
+def save_history(history, filepath):
+    with open(filepath, "w") as f:
+        json.dump(history, f, indent=2)
+
 if __name__ == '__main__':
 
     credentials = load_credentials("credentials.txt")
@@ -211,4 +245,10 @@ if __name__ == '__main__':
     # Save machine-readable audit results
     save_summary(summary, "audit_summary.json")
 
-
+    history = load_history("audit_history.json")
+    history = add_to_history(
+        history,
+        summary,
+        policy["history_runs"]
+    )
+    save_history(history, "audit_history.json")
