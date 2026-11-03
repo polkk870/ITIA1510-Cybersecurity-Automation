@@ -1,3 +1,5 @@
+import json
+from password_checker import breach_verdicts
 import os
 from password_checker import (
     check_length, check_digit, check_username, check_rotation,
@@ -199,3 +201,55 @@ def test_save_and_load_history():
     os.remove("test_history.json")
 
     print("PASS: save_history and load_history match")
+
+def test_breach_verdicts_jsmith():
+    known_breached = load_breached("breached.txt")
+
+    result = breach_verdicts(
+        "jsmith",
+        load_credentials("credentials.txt"),
+        known_breached
+    )
+
+    assert result["accounts"][0] == {
+        "account": "Gmail",
+        "on_breach_list": True
+    }
+
+    print("PASS: breach_verdicts marked the Gmail password as on the breach list")
+    
+def test_breach_verdicts_no_accounts():
+    known_breached = load_breached("breached.txt")
+
+    result = breach_verdicts(
+        "nobody",
+        load_credentials("credentials.txt"),
+        known_breached
+    )
+
+    assert result["accounts"] == []
+
+    print("PASS: breach_verdicts returned an empty list for a user with no accounts")
+
+def test_breach_verdicts_no_passwords_exposed():
+    known_breached = load_breached("breached.txt")
+
+    result = breach_verdicts(
+        "jsmith",
+        load_credentials("credentials.txt"),
+        known_breached
+    )
+
+    result_json = json.dumps(result)
+
+    credentials = load_credentials("credentials.txt")
+
+    for credential in credentials:
+
+        # Skip SSH Server because its password is the same as the username.
+        if credential["account"] == "SSH Server":
+            continue
+
+        assert credential["password"] not in result_json
+
+    print("PASS: breach_verdicts does not expose passwords")

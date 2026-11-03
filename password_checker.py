@@ -93,6 +93,36 @@ def check_rotation(rotation_interval, policy):
 
 def check_breach(password, known_breached):
     return password not in known_breached
+def breach_verdicts(username, credentials, known_breached):
+    """Return breach verdicts for every account belonging to username."""
+
+    accounts = []
+
+    for credential in credentials:
+        if credential["username"] == username:
+
+            # check_breach() returns True when the password is NOT breached,
+            # so on_breach_list is the opposite.
+            password_ok = check_breach(
+                credential["password"],
+                known_breached
+            )
+
+            on_breach_list = not password_ok
+
+            # Only the account and verdict are returned.
+            # The password is omitted for data minimization.
+            verdict = {
+                "account": credential["account"],
+                "on_breach_list": on_breach_list
+            }
+
+            accounts.append(verdict)
+
+    return {
+        "username": username,
+        "accounts": accounts
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -252,3 +282,15 @@ if __name__ == '__main__':
         policy["history_runs"]
     )
     save_history(history, "audit_history.json")
+
+    # Save breach verdicts for jsmith.
+    result = breach_verdicts(
+        "jsmith",
+        credentials,
+        known_breached
+    )
+
+    print(json.dumps(result, indent=2))
+
+    with open("breach_check.json", "w") as f:
+        json.dump(result, f, indent=2)
